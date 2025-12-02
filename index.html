@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Smart Networking Quest</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Preconnect untuk mempercepat load audio -->
+  <link rel="preconnect" href="https://cdn.pixabay.com">
+  <link rel="preconnect" href="https://assets.mixkit.co">
+</head>
+<body>
+
+  <!-- 1. LAYAR WELCOME (DESAIN BARU) -->
+  <div id="welcomeScreen" class="screen welcome-screen active">
+    <div class="cyber-container">
+      <div class="logo-area">
+        <h1 class="glitch-text">SMART<br>NETWORKING</h1>
+        <span class="subtitle">QUEST</span>
+      </div>
+      
+      <div class="input-area">
+        <p>IDENTIFIKASI AGEN</p>
+        <input type="text" id="playerNameInput" class="neon-input" placeholder="Ketik Namamu..." maxlength="12" autocomplete="off">
+        <button class="btn-neon" onclick="submitName()">🚀 AKSES SISTEM</button>
+      </div>
+      
+      <div class="footer-text">v4.0 Stable • Siap Mobile</div>
+    </div>
+  </div>
+
+  <div id="mainWrapper" style="display: none;">
+    
+    <!-- 2. MENU UTAMA -->
+    <div id="mainMenu" class="screen menu-screen">
+      <div class="menu-card glass">
+        <h2 class="menu-title">MARKAS PUSAT</h2>
+        <div class="agent-info">
+          <div class="avatar">👤</div>
+          <div>Agen <span id="displayPlayerName" class="highlight">Unknown</span></div>
+        </div>
+
+        <div class="menu-list">
+          <button class="menu-item primary" onclick="startGame()">
+            <span class="icon">🎮</span> MULAI MISI
+          </button>
+          <button class="menu-item" onclick="showScreen('profileScreen')">
+            <span class="icon">📂</span> PROFIL
+          </button>
+          <button class="menu-item" onclick="showScreen('rewardsScreen')">
+            <span class="icon">🏆</span> PENCAPAIAN
+          </button>
+          <button class="menu-item" onclick="showScreen('leaderboardScreen')">
+            <span class="icon">📊</span> PERINGKAT
+          </button>
+          <button class="menu-item danger" onclick="resetData()">
+            <span class="icon">⛔</span> RESET DATA
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. GAMEPLAY -->
+    <div id="gameplayScreen" class="screen gameplay-screen">
+      <!-- HUD -->
+      <div class="hud-top">
+        <div class="hud-box">❤️ <span id="hudLives">3</span></div>
+        <div class="hud-box center">LEVEL <span id="hudLevel">1</span></div>
+        <div class="hud-box">⏸️ <button class="btn-pause" onclick="togglePause()"></button></div>
+      </div>
+      
+      <div class="hud-sub">
+        <div class="hud-pill gold">🪙 <span id="hudCoins">0</span></div>
+        <div class="hud-pill blue">⭐ <span id="hudScore">0</span></div>
+      </div>
+
+      <!-- WORLD -->
+      <div class="game-world" id="gameWorld">
+        <div class="bg-layer" id="worldBg"></div>
+        <div class="game-layer" id="worldLayer"></div>
+      </div>
+      
+      <!-- CONTROLS (MOBILE) -->
+      <div class="mobile-controls">
+        <div class="ctrl-btn left" id="btnLeft">⬅️</div>
+        <div class="ctrl-btn right" id="btnRight">➡️</div>
+        <div class="ctrl-btn jump" id="btnJump">⬆️</div>
+      </div>
+    </div>
+
+    <!-- 4. MODAL PAUSE (DESAIN BARU) -->
+    <div id="pauseModal" class="modal-overlay">
+      <div class="modal-box glass">
+        <h2 class="modal-title">⏸️ GAME PAUSED</h2>
+        <p>Istirahat sejenak, Agen?</p>
+        <div class="btn-group-vertical">
+          <button class="btn-action resume" onclick="togglePause()">▶️ LANJUTKAN</button>
+          <button class="btn-action exit" onclick="exitToMenu()">🏠 KELUAR KE MENU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL LAINNYA -->
+    <div id="questionModal" class="modal-overlay">
+      <div class="modal-box question-card">
+        <div class="q-header">SOAL KEAMANAN</div>
+        <h3 id="questionText">...</h3>
+        <div id="answersGrid" class="ans-grid"></div>
+        <div id="feedbackBox" class="feedback"></div>
+      </div>
+    </div>
+
+    <div id="gameOverModal" class="modal-overlay">
+      <div class="modal-box danger">
+        <h1>💀 MISI GAGAL</h1>
+        <p>Jangan menyerah, Agen!</p>
+        <div class="btn-group-vertical">
+          <button class="btn-action resume" onclick="restartLevel()">🔄 COBA LAGI</button>
+          <button class="btn-action exit" onclick="exitToMenu()">🏠 MENYERAH</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="levelCompleteModal" class="modal-overlay">
+      <div class="modal-box success">
+        <h1>🎉 MISI SUKSES!</h1>
+        <p>Skor Level: <span id="levelEndScore">0</span></p>
+        <button class="btn-action resume" onclick="nextLevel()">➡️ LEVEL BERIKUTNYA</button>
+      </div>
+    </div>
+
+    <!-- LAYAR INFO -->
+    <div id="profileScreen" class="screen info-screen">
+      <div class="info-card">
+        <h2>📂 DATA AGEN</h2>
+        <div class="stats-row">
+          <div class="stat"><h3>Skor</h3><span id="profileScore">0</span></div>
+          <div class="stat"><h3>Level</h3><span id="profileLevel">1</span></div>
+          <div class="stat"><h3>Koin</h3><span id="profileCoins">0</span></div>
+        </div>
+        <button class="btn-neon small" onclick="showScreen('mainMenu')">KEMBALI</button>
+      </div>
+    </div>
+
+    <div id="rewardsScreen" class="screen info-screen">
+      <div class="info-card">
+        <h2>🏆 PENGHARGAAN</h2>
+        <div id="rewardsList" class="scroll-list"></div>
+        <button class="btn-neon small" onclick="showScreen('mainMenu')">KEMBALI</button>
+      </div>
+    </div>
+    
+    <div id="leaderboardScreen" class="screen info-screen">
+      <div class="info-card">
+        <h2>📊 PERINGKAT GLOBAL</h2>
+        <div id="leaderboardList" class="scroll-list"></div>
+        <button class="btn-neon small" onclick="showScreen('mainMenu')">KEMBALI</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
