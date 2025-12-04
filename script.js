@@ -1,6 +1,6 @@
 /**
- * SMART NETWORKING QUEST v7.0
- * Features: Level Select, Star System, No-Repeat on Fail, Level Progression Fix.
+ * SMART NETWORKING QUEST v7.1
+ * Features: MOBILE TOUCH FIX, Level Select, Star System, No-Repeat on Fail.
  */
 
 // --- AUDIO SYSTEM ---
@@ -155,54 +155,39 @@ const ENEMY_QUESTIONS = [
   {q: "Siapa pendiri Facebook?", a: ["Mark Zuckerberg", "Bill Gates", "Elon Musk", "Jack Ma", "Nadiem Makarim"], c: 0}
 ];
 
-// --- GAME STATE & VARIABLES ---
+// --- GAME STATE ---
 let gameState = {
-  playerName: "",
-  maxLevel: 1, // Level tertinggi yang terbuka
-  levelStars: {}, // Menyimpan bintang per level {1: 3, 2: 2, ...}
-  level: 1, 
-  score: 0, 
-  coins: 0, 
-  lives: 3, 
-  active: false, 
-  paused: false
+  playerName: "", maxLevel: 1, levelStars: {},
+  level: 1, score: 0, coins: 0, lives: 3, active: false, paused: false
 };
 
 let player = { x: 50, y: 200, w: 40, h: 40, vx: 0, vy: 0, speed: 5, jumpPwr: 13, grav: 0.6, grounded: false, jumps: 0 };
 let objs = { plats: [], coins: [], enemies: [], qboxes: [] };
 let keys = { l: false, r: false };
 let loopId = null;
-let currentLevelCorrectAnswers = 0; // Track jawaban benar per level
+let currentLevelCorrectAnswers = 0;
 
 // --- INIT ---
 window.onload = () => {
   const s = localStorage.getItem('snq_v7_data');
   if(s) {
     const d=JSON.parse(s); 
-    gameState.playerName = d.name; 
-    gameState.score = d.score || 0;
-    gameState.maxLevel = d.maxLevel || 1;
-    gameState.levelStars = d.levelStars || {};
-    
+    gameState.playerName=d.name; gameState.score=d.score||0; 
+    gameState.maxLevel=d.maxLevel||1; gameState.levelStars=d.levelStars||{};
     document.getElementById('welcomeScreen').style.display='none';
     document.getElementById('mainWrapper').style.display='block';
-    showScreen('mainMenu'); 
-    updateUI();
+    showScreen('mainMenu'); updateUI();
   }
+  setupTouchControls();
 };
 
 function submitName() {
   const v=document.getElementById('playerNameInput').value.trim();
   if(!v) return alert("Nama wajib!");
-  gameState.playerName=v; 
-  saveData(); 
-  AudioCtrl.init(); 
-  AudioCtrl.play('bgm_menu');
-  
+  gameState.playerName=v; saveData(); AudioCtrl.init(); AudioCtrl.play('bgm_menu');
   document.getElementById('welcomeScreen').style.display='none';
   document.getElementById('mainWrapper').style.display='block';
-  showScreen('mainMenu'); 
-  updateUI();
+  showScreen('mainMenu'); updateUI();
 }
 
 function showScreen(id) {
@@ -213,11 +198,10 @@ function showScreen(id) {
   if(id==='rewardsScreen') renderRewards();
 }
 
-// --- LEVEL SELECT SYSTEM ---
+// --- LEVEL SELECT ---
 function showLevelSelect() {
   const grid = document.getElementById('levelGrid');
   grid.innerHTML = '';
-  
   for(let i=1; i<=10; i++) {
     const isLocked = i > gameState.maxLevel;
     const stars = gameState.levelStars[i] || 0;
@@ -229,10 +213,7 @@ function showLevelSelect() {
     btn.innerHTML = `<span>${i}</span><div class="lvl-stars">${starStr}</div>`;
     
     if(!isLocked) {
-      btn.onclick = () => {
-        gameState.level = i;
-        startGame();
-      };
+      btn.onclick = () => { gameState.level = i; startGame(); };
     }
     grid.appendChild(btn);
   }
@@ -242,38 +223,27 @@ function showLevelSelect() {
 // --- GAMEPLAY ENGINE ---
 function startGame() {
   AudioCtrl.play('bgm_game');
-  gameState.active=true; 
-  gameState.paused=false; 
-  gameState.lives=3;
-  // Level sudah di-set dari tombol start menu (level 1) atau level select
-  if(!gameState.level) gameState.level = 1;
-  
-  startLevel(gameState.level); 
-  showScreen('gameplayScreen');
-  if(loopId) cancelAnimationFrame(loopId); 
-  gameLoop();
+  gameState.active=true; gameState.paused=false; gameState.lives=3;
+  if(!gameState.level) gameState.level=1;
+  startLevel(gameState.level); showScreen('gameplayScreen');
+  if(loopId) cancelAnimationFrame(loopId); gameLoop();
 }
 
 function startLevel(lvl) {
   player.x=50; player.y=200; player.vx=0; player.vy=0;
-  currentLevelCorrectAnswers = 0; // Reset counter benar
-  generateLevel(lvl); 
-  updateHUD();
+  currentLevelCorrectAnswers = 0;
+  generateLevel(lvl); updateHUD();
 }
 
 function generateLevel(lvl) {
   const layer = document.getElementById('worldLayer');
   layer.innerHTML = '<div id="player" class="player"></div><div id="finishLine" style="display:none">🏁</div>';
-  
   const fin = document.getElementById('finishLine');
   fin.style.cssText = `position:absolute; bottom:50px; font-size:50px; display:none; z-index:4;`;
 
   objs = { plats: [], coins: [], enemies: [], qboxes: [] };
-  
-  // TANAH
   createObj('plat', 0, 0, 20000, 50); 
 
-  // PROCEDURAL
   let cx = 300;
   const len = 2000 + (lvl * 400);
   let qCount = 0;
@@ -283,36 +253,26 @@ function generateLevel(lvl) {
     const cw = 150;
     createObj('plat', cx, cy, cw, 20);
     createObj('coin', cx + 50, cy + 50);
-
     if (Math.random() < 0.3) createObj('enemy', cx + 50, 50, 200);
     if (Math.random() < 0.4) createObj('enemy', cx + 20, cy + 20, cw);
-
     if (qCount < 5 && Math.random() > 0.4) {
-      createObj('qbox', cx + 70, cy + 80, qCount);
-      qCount++;
+      createObj('qbox', cx + 70, cy + 80, qCount); qCount++;
     }
     cx += 250;
   }
-
   while(qCount < 5) {
-    createObj('plat', cx, 100, 150, 20);
-    createObj('qbox', cx + 70, 150, qCount);
-    qCount++;
-    cx += 250;
+    createObj('plat', cx, 100, 150, 20); createObj('qbox', cx + 70, 150, qCount);
+    qCount++; cx += 250;
   }
-
-  fin.style.left = (cx + 200) + 'px';
-  fin.style.display = 'none'; 
+  fin.style.left = (cx + 200) + 'px'; fin.style.display = 'none'; 
 }
 
 function createObj(type, x, y, param) {
   const el = document.createElement('div');
   el.className = type==='plat'?'platform':type==='qbox'?'question-box':type;
   el.style.left=x+'px'; el.style.bottom=y+'px';
-
   if(type==='plat') { 
-    el.style.width=param+'px'; 
-    let h = 20; if(y===0) { h=50; el.style.height='50px'; } else { el.style.height='20px'; }
+    el.style.width=param+'px'; let h = 20; if(y===0) { h=50; el.style.height='50px'; } else { el.style.height='20px'; }
     objs.plats.push({x,y,w:param,h:h}); document.getElementById('worldLayer').appendChild(el);
   }
   else if(type==='coin') { document.getElementById('worldLayer').appendChild(el); objs.coins.push({el,x,y,active:true}); }
@@ -334,18 +294,14 @@ function gameLoop() {
   if(keys.r) player.vx = player.speed;
   else if(keys.l) player.vx = -player.speed;
   else player.vx = 0;
-  player.x += player.vx;
-
-  player.vy -= player.grav;
-  player.y += player.vy;
+  player.x += player.vx; player.vy -= player.grav; player.y += player.vy;
 
   player.grounded = false;
   objs.plats.forEach(p => {
     if(player.x + player.w > p.x && player.x < p.x + p.w) {
       if(player.y <= p.y + p.h && player.y + 20 >= p.y + p.h && player.vy <= 0) {
         player.grounded = true; player.y = p.y + p.h; player.vy = 0; player.jumps = 0;
-      }
-      else if(player.y + player.h >= p.y && player.y + player.h <= p.y + 15 && player.vy > 0) {
+      } else if(player.y + player.h >= p.y && player.y + player.h <= p.y + 15 && player.vy > 0) {
         player.vy = -1; player.y = p.y - player.h - 1;
       }
     }
@@ -371,16 +327,13 @@ function updateEntities() {
   objs.enemies.forEach(e => {
     if(!e.active) return;
     e.x += 2 * e.dir;
-    if(e.x >= e.maxX) e.dir = -1;
-    if(e.x <= e.minX) e.dir = 1;
-    e.el.style.left = e.x + 'px';
-    e.el.style.transform = e.dir===1 ? 'scaleX(1)' : 'scaleX(-1)';
+    if(e.x >= e.maxX) e.dir = -1; if(e.x <= e.minX) e.dir = 1;
+    e.el.style.left = e.x + 'px'; e.el.style.transform = e.dir===1 ? 'scaleX(1)' : 'scaleX(-1)';
     if(rectColl(player, {x:e.x, y:e.y, w:40, h:40})) openEnemyQuestion(e);
   });
   objs.coins.forEach(c => {
     if(c.active && rectColl(player, {x:c.x, y:c.y, w:30, h:30})) {
-      c.active=false; c.el.style.display='none';
-      gameState.score+=10; gameState.coins++; AudioCtrl.play('coin'); updateHUD();
+      c.active=false; c.el.style.display='none'; gameState.score+=10; gameState.coins++; AudioCtrl.play('coin'); updateHUD();
     }
   });
   objs.qboxes.forEach(q => {
@@ -391,6 +344,17 @@ function updateEntities() {
 function rectColl(a, b) { return (a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y); }
 function jump() { if(player.jumps < 2) { player.vy=player.jumpPwr; player.jumps++; player.grounded=false; AudioCtrl.play('jump'); } }
 
+// --- CONTROLS (TOUCH FIX) ---
+function setupTouchControls() {
+  const bl=document.getElementById('btnLeft'), br=document.getElementById('btnRight'), bj=document.getElementById('btnJump');
+  const addTouch=(el, startFn, endFn)=>{
+    el.addEventListener('touchstart', (e)=>{ e.preventDefault(); startFn(); }, {passive:false});
+    el.addEventListener('touchend', (e)=>{ e.preventDefault(); endFn(); });
+  };
+  addTouch(bl, ()=>keys.l=true, ()=>keys.l=false);
+  addTouch(br, ()=>keys.r=true, ()=>keys.r=false);
+  addTouch(bj, ()=>jump(), ()=>{});
+}
 window.onkeydown = e => {
   const k = e.key.toLowerCase();
   if(k==='arrowright'||k==='d') keys.r=true;
@@ -403,7 +367,7 @@ window.onkeyup = e => {
   if(k==='arrowleft'||k==='a') keys.l=false;
 };
 
-// --- LOGIC PERTANYAAN (UPDATE NO REPEAT) ---
+// --- LOGIC PERTANYAAN (RANDOM FIX) ---
 function openQuestion(qObj) {
   gameState.paused = true;
   setupModal("SOAL PENGETAHUAN", false);
@@ -411,38 +375,27 @@ function openQuestion(qObj) {
   const d = set[qObj.idx % set.length];
   
   renderQuestion(d.q, d.a, d.c, () => {
-    // BENAR
     AudioCtrl.play('win'); gameState.score+=100;
-    qObj.solved=true; 
-    qObj.el.style.background='#27ae60'; 
-    qObj.el.innerText='✓';
-    currentLevelCorrectAnswers++; // Tambah counter benar
+    qObj.solved=true; qObj.el.style.background='#27ae60'; qObj.el.innerText='✓';
+    currentLevelCorrectAnswers++;
     closeModal(); checkAllSolved();
   }, () => {
-    // SALAH (Tidak boleh ulang, tandai merah)
     AudioCtrl.play('hit'); 
-    qObj.solved=true; 
-    qObj.el.style.background='#c0392b'; 
-    qObj.el.innerText='X';
+    qObj.solved=true; qObj.el.style.background='#c0392b'; qObj.el.innerText='X';
     closeModal(); checkAllSolved();
   });
 }
 
 function openEnemyQuestion(enemyObj) {
-  gameState.paused = true;
-  setupModal("⚠️ SOAL MUSUH ⚠️", true);
+  gameState.paused = true; setupModal("⚠️ SOAL MUSUH ⚠️", true);
   const d = ENEMY_QUESTIONS[Math.floor(Math.random()*ENEMY_QUESTIONS.length)];
-  
   renderQuestion(d.q, d.a, d.c, () => {
     AudioCtrl.play('enemy_die'); gameState.score += 200;
-    enemyObj.active = false; enemyObj.el.style.display = 'none'; 
-    closeModal();
+    enemyObj.active = false; enemyObj.el.style.display = 'none'; closeModal();
   }, () => {
-    AudioCtrl.play('hit'); 
-    gameState.lives--; updateHUD();
+    AudioCtrl.play('hit'); gameState.lives--; updateHUD();
     player.x -= 100; player.y += 20;
-    closeModal();
-    if(gameState.lives <= 0) die();
+    closeModal(); if(gameState.lives <= 0) die();
   });
 }
 
@@ -479,9 +432,7 @@ function renderQuestion(txt, answers, correctIdx, onCorrect, onWrong) {
 
 function closeModal() {
   document.getElementById('questionModal').style.display = 'none';
-  gameState.paused = false;
-  player.x += 20; // Dorong dikit biar ga nyangkut
-  updateHUD();
+  gameState.paused = false; player.x += 20; updateHUD();
 }
 
 function checkAllSolved() {
@@ -500,32 +451,22 @@ function die() {
   } else { player.x=50; player.y=200; player.vy=0; }
 }
 
-// --- LEVEL COMPLETE LOGIC (BINTANG & LEVEL FIX) ---
 function levelComplete() {
-  gameState.active = false;
-  AudioCtrl.play('win');
+  gameState.active = false; AudioCtrl.play('win');
   
-  // Hitung Bintang
   let stars = 1;
   if(currentLevelCorrectAnswers === 5) stars = 3;
   else if(currentLevelCorrectAnswers === 4) stars = 2;
   
-  // Simpan Bintang Tertinggi
   const currentBest = gameState.levelStars[gameState.level] || 0;
   if(stars > currentBest) gameState.levelStars[gameState.level] = stars;
   
-  // Tampilkan Bintang UI
   const starContainer = document.getElementById('starDisplay');
   let starHTML = '';
-  for(let i=0; i<3; i++) {
-    starHTML += (i < stars) ? '⭐' : '<span style="opacity:0.3; filter:grayscale(1)">⭐</span>';
-  }
+  for(let i=0; i<3; i++) starHTML += (i < stars) ? '⭐' : '<span style="opacity:0.3; filter:grayscale(1)">⭐</span>';
   starContainer.innerHTML = starHTML;
 
-  // Unlock Next Level
-  if(gameState.level >= gameState.maxLevel) {
-    gameState.maxLevel = gameState.level + 1;
-  }
+  if(gameState.level >= gameState.maxLevel) gameState.maxLevel = gameState.level + 1;
 
   document.getElementById('levelCorrectCount').innerText = currentLevelCorrectAnswers;
   document.getElementById('levelEndScore').innerText = gameState.score;
@@ -533,14 +474,10 @@ function levelComplete() {
   saveData();
 }
 
-// BUG FIX: Angka level di HUD sekarang update otomatis
 function nextLevel() {
   document.getElementById('levelCompleteModal').style.display = 'none';
-  gameState.level++; // Increment Level
-  
-  // Loop kembali ke 1 jika > 10 (Opsional, atau tamat)
+  gameState.level++; 
   if(gameState.level > 10) gameState.level = 10; 
-  
   startLevel(gameState.level);
   gameState.active = true;
   if(loopId) cancelAnimationFrame(loopId);
@@ -549,11 +486,8 @@ function nextLevel() {
 
 function restartLevel() {
   document.getElementById('gameOverModal').style.display='none';
-  startLevel(gameState.level); // Restart level yang sama
-  gameState.lives = 3;
-  gameState.active = true;
-  if(loopId) cancelAnimationFrame(loopId);
-  gameLoop();
+  startLevel(gameState.level); gameState.lives = 3; gameState.active = true;
+  if(loopId) cancelAnimationFrame(loopId); gameLoop();
 }
 
 function togglePause() { if(!gameState.active)return; gameState.paused=!gameState.paused; document.getElementById('pauseModal').style.display=gameState.paused?'flex':'none'; }
@@ -561,33 +495,27 @@ function exitToMenu() { gameState.active=false; if(loopId)cancelAnimationFrame(l
 
 function updateHUD() {
   document.getElementById('hudScore').innerText=gameState.score;
-  document.getElementById('hudLevel').innerText=gameState.level; // Updated Logic
+  document.getElementById('hudLevel').innerText=gameState.level;
   document.getElementById('hudCoins').innerText=gameState.coins;
   document.getElementById('hudLives').innerText=gameState.lives;
-  
   const solved = objs.qboxes.filter(q => q.solved).length;
-  // Menampilkan berapa yang benar dari yang sudah dijawab (opsional)
   document.getElementById('hudCorrect').innerText = currentLevelCorrectAnswers;
 }
 
 function updateUI() {
   document.getElementById('displayPlayerName').innerText=gameState.playerName;
   document.getElementById('profileScore').innerText=gameState.score;
-  document.getElementById('profileLevel').innerText=gameState.maxLevel; // Show Max Level Unlocked
+  document.getElementById('profileLevel').innerText=gameState.maxLevel;
   document.getElementById('profileCoins').innerText=gameState.coins;
 }
 
 function saveData() { 
   localStorage.setItem('snq_v7_data', JSON.stringify({
-    name: gameState.playerName, 
-    score: gameState.score,
-    maxLevel: gameState.maxLevel,
-    levelStars: gameState.levelStars
+    name: gameState.playerName, score: gameState.score,
+    maxLevel: gameState.maxLevel, levelStars: gameState.levelStars
   })); 
 }
-
 function resetData() { localStorage.removeItem('snq_v7_data'); location.reload(); }
-
 function renderRewards() {
   const l=document.getElementById('rewardsList'); l.innerHTML='';
   ['Pemula','Ahli','Master'].forEach((r,i)=>{ const u=gameState.score>(i+1)*500; l.innerHTML+=`<div class="list-item" style="color:${u?'gold':'#555'}"><span>🏆 ${r}</span><span>${u?'Terbuka':'Kunci'}</span></div>`; });
